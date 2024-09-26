@@ -164,6 +164,7 @@ def update_layout(  # noqa: PLR0913
     newline: bool = False,
 )  -> None:
     """Update the layout to include content that needs displayed."""
+    # updates parameter information block in the layout if specified
     if label.equals("Parameter Information"):
         layout["Parameters"].update(
             content_func(console,
@@ -178,9 +179,11 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no parameter information if not specified
     else:
         layout["Parameters"].update("No parameter information to be displayed.")
 
+    # updates test trace block in the layout if specified
     if label.equals("Test Trace"):
         layout["Test Trace"].update(
             content_func(console,
@@ -195,9 +198,11 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no test tracing information if not specified
     else:
         layout["Test Trace"].update("No test tracing to be displayed.")
 
+    # updates test failure block in the layout if specified
     if label.equals("Test Failure(s)"):
         layout["Test Failure(s)"].update(
             content_func(console,
@@ -212,9 +217,11 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no test failure information if not specified
     else:
         layout["Test Failure(s)"].update("No test failures to be displayed.")
 
+    # updates failing test block in the layout if specified
     if label.equals("Failing Test"):
         layout["Failing Test"].update(
             content_func(console,
@@ -229,9 +236,11 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no failing test information if not specified
     else:
         layout["Failing Test"].update("No failing tests to be displayed")
 
+    # updates advice status block in the layout if specified
     if label.equals("Advice Status"):
         layout["Advice Status"].update(
             content_func(console,
@@ -246,9 +255,11 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no advice status information if not specified
     else:
         layout["Advice Status"].update("No advice status information to be displayed.")
 
+    # updates debugging information block in the layout if specified
     if label.equals("Debugging Information"):
         layout["Debugging Information"].update(
             content_func(console,
@@ -263,9 +274,11 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no debugging information if not specified
     else:
         layout["Debugging Information"].update("No debugging information to be displayed.")
 
+    # updates overall status block in the layout if specified
     if label.equals("Overall Status"):
         layout["Overall Status"].update(
             content_func(console,
@@ -280,7 +293,9 @@ def update_layout(  # noqa: PLR0913
                          newline)
         )
 
+    # updates to inform there is no overall status information if not specified
     else:
         layout["Overall Status"].update("No overall status information to be displayed.")
 
+    # prints the updated layout to the terminal
     print(layout)
