@@ -29,3 +29,4 @@ class ReportType(str, Enum):
     testfailures = "failure"
     testtrace = "trace"
     testadvice = "advice"
+    progress = "progress"

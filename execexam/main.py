@@ -1,3 +1,4 @@
+
 """Run an executable examination."""
 
 import io
@@ -67,6 +68,7 @@ def run(  # noqa: PLR0913, PLR0915
     syntax_theme: enumerations.Theme = typer.Option(
         enumerations.Theme.ansi_dark, help="Syntax highlighting theme"
     ),
+    # progress: bool = typer.Option(False, help="Display progress bar"),
 ) -> None:
     """Run an executable exam and produce the requested report(s)."""
     # indicate that the program's exit code is zero
@@ -384,6 +386,23 @@ def run(  # noqa: PLR0913, PLR0915
         report,
         exit_code_message,
         "Overall Status",
+        fancy,
+        syntax,
+        syntax_theme,
+        "Python",
+        newline,
+    )
+    total_checks = 10
+    syntax = False
+    newline = True
+    test = 5
+    progress_message = display.update_progress_bar(test, total_checks)
+    display.display_content(
+        console,
+        enumerations.ReportType.progress,
+        report,
+        progress_message,
+        "Progress",
         fancy,
         syntax,
         syntax_theme,

@@ -47,7 +47,6 @@ def display_advice(return_code: int) -> str:
     message += "\n"
     return message
 
-
 def display_content(  # noqa: PLR0913
     console: Console,
     display_report_type: enumerations.ReportType,
@@ -116,3 +115,18 @@ def display_content(  # noqa: PLR0913
         # is needed and there is no panel box either
         else:
             console.print(f"{label}\n{content}")
+
+
+def update_progress_bar(return_code: int, total: int) -> str:
+    """Create a progress bar string based on the return code and total checks."""
+    # Assuming return_code corresponds to the number of passed checks
+    bar_length = 20  # Length of the progress bar
+    progress = return_code / total
+    block = int(round(bar_length * progress))
+
+    # Create the progress bar string
+    bar = "[" + "#" * block + "-" * (bar_length - block) + "]"
+    percentage = round(progress * 100, 2)
+    message = f"{bar} {percentage}% of checks complete"
+    # Return the formatted progress bar and percentage
+    return message
