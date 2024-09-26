@@ -69,8 +69,6 @@ def run(  # noqa: PLR0913, PLR0915
     ),
 ) -> None:
     """Run an executable exam and produce the requested report(s)."""
-    # create the layout for the terminal
-    layout = display.create_layout()
     # indicate that the program's exit code is zero
     # to show that the program completed successfully;
     # attempt to prove otherwise by running all the checks
@@ -110,9 +108,7 @@ def run(  # noqa: PLR0913, PLR0915
     # --> SETUP
     syntax = False
     newline = True
-    display.update_layout(
-        display.display_content,
-        layout,
+    display.display_content(
         console,
         enumerations.ReportType.setup,
         report,
@@ -216,9 +212,7 @@ def run(  # noqa: PLR0913, PLR0915
     # --> TRACE
     syntax = False
     newline = True
-    display.update_layout(
-        display.display_content,
-        layout,
+    display.display_content(
         console,
         enumerations.ReportType.testtrace,
         report,
@@ -252,9 +246,7 @@ def run(  # noqa: PLR0913, PLR0915
         # --> FAILURE
         syntax = False
         newline = True
-        display.update_layout(
-            display.display_content,
-            layout,
+        display.display_content(
             console,
             enumerations.ReportType.testfailures,
             report,
@@ -290,9 +282,7 @@ def run(  # noqa: PLR0913, PLR0915
             # --> CODE
             syntax = True
             newline = True
-            display.update_layout(
-                display.display_content,
-                layout,
+            display.display_content(
                 console,
                 enumerations.ReportType.testcodes,
                 report,
@@ -352,9 +342,7 @@ def run(  # noqa: PLR0913, PLR0915
             syntax = False
             newline = False
             advice_message = display.display_advice(return_code)
-            display.update_layout(
-                display.display_content,
-                layout,
+            display.display_content(
                 console,
                 enumerations.ReportType.exitcode,
                 report,
@@ -372,9 +360,7 @@ def run(  # noqa: PLR0913, PLR0915
         debugging_messages = debugger.get_debugging_messages()
         syntax = False
         newline = True
-        display.update_layout(
-            display.display_content,
-            layout,
+        display.display_content(
             console,
             enumerations.ReportType.debug,
             report,
@@ -392,9 +378,7 @@ def run(  # noqa: PLR0913, PLR0915
     # display the return code through a diagnostic message
     syntax = False
     newline = True
-    display.update_layout(
-        display.display_content,
-        layout,
+    display.display_content(
         console,
         enumerations.ReportType.exitcode,
         report,
