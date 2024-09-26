@@ -1,6 +1,6 @@
 """Display results from running the execexam tool."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Iterable
 
 from rich.console import Console
 from rich.panel import Panel
@@ -120,7 +120,7 @@ def display_content(  # noqa: PLR0913
             console.print(f"{label}\n{content}")
 
 
-def create_layout():
+def create_layout()  -> Layout:
     """Create a layout to organize data displayed in the terminal using the rich package."""
     # creates a Layout object
     layout = Layout()
@@ -131,7 +131,7 @@ def create_layout():
         Layout(name="Parameters/Failing Test"),
         Layout(name="Test Failure(s)"),
         Layout(name="Advice Status/Overall Status"),
-        Layout(name="Debugging Info")
+        Layout(name="Debugging Information")
     )
 
     # splits the second row into 2 columns
@@ -145,3 +145,142 @@ def create_layout():
         Layout(name="Advice Status"),
         Layout(name="Overall Status")
     )
+
+    # returns the layout created
+    return layout
+
+def update_layout(  # noqa: PLR0913
+    content_func: Iterable,
+    layout: Layout,
+    console: Console,
+    display_report_type: enumerations.ReportType,
+    report_types: Optional[List[enumerations.ReportType]],
+    content: str,
+    label: str,
+    richtext: bool,
+    syntax: bool,
+    syntax_theme: str = "ansi_dark",
+    syntax_language: str = "python",
+    newline: bool = False,
+)  -> None:
+    """Update the layout to include content that needs displayed."""
+    if label.equals("Parameter Information"):
+        layout["Parameters"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Parameters"].update("No parameter information to be displayed.")
+
+    if label.equals("Test Trace"):
+        layout["Test Trace"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Test Trace"].update("No test tracing to be displayed.")
+
+    if label.equals("Test Failure(s)"):
+        layout["Test Failure(s)"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Test Failure(s)"].update("No test failures to be displayed.")
+
+    if label.equals("Failing Test"):
+        layout["Failing Test"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Failing Test"].update("No failing tests to be displayed")
+
+    if label.equals("Advice Status"):
+        layout["Advice Status"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Advice Status"].update("No advice status information to be displayed.")
+
+    if label.equals("Debugging Information"):
+        layout["Debugging Information"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Debugging Information"].update("No debugging information to be displayed.")
+
+    if label.equals("Overall Status"):
+        layout["Overall Status"].update(
+            content_func(console,
+                         display_report_type,
+                         report_types,
+                         content,
+                         label,
+                         richtext,
+                         syntax,
+                         syntax_theme,
+                         syntax_language,
+                         newline)
+        )
+
+    else:
+        layout["Overall Status"].update("No overall status information to be displayed.")
+
+    print(layout)
