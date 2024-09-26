@@ -69,6 +69,8 @@ def run(  # noqa: PLR0913, PLR0915
     ),
 ) -> None:
     """Run an executable exam and produce the requested report(s)."""
+    # create the layout for the terminal
+    display.create_layout()
     # indicate that the program's exit code is zero
     # to show that the program completed successfully;
     # attempt to prove otherwise by running all the checks

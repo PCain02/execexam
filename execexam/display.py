@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
+from rich.layout import Layout
+from rich import print
 
 from . import enumerations
 
@@ -116,3 +118,30 @@ def display_content(  # noqa: PLR0913
         # is needed and there is no panel box either
         else:
             console.print(f"{label}\n{content}")
+
+
+def create_layout():
+    """Create a layout to organize data displayed in the terminal using the rich package."""
+    # creates a Layout object
+    layout = Layout()
+
+    # splits the layout into 5 rows
+    layout.split_column(
+        Layout(name="Test Trace"),
+        Layout(name="Parameters/Failing Test"),
+        Layout(name="Test Failure(s)"),
+        Layout(name="Advice Status/Overall Status"),
+        Layout(name="Debugging Info")
+    )
+
+    # splits the second row into 2 columns
+    layout["Parameters/Failing Test"].split_row(
+        Layout(name="Parameters"),
+        Layout(name="Failing Test")
+    )
+
+    # splits the fourth row into 2 columns
+    layout["Advice Status/Overall Status"].split_row(
+        Layout(name="Advice Status"),
+        Layout(name="Overall Status")
+    )
