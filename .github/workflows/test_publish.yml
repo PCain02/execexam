@@ -25,6 +25,16 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
+          
+      - name: Run Linters
+        run: |
+          pipx install ruff
+          poetry run task lint
+        
+      - name: Run Tests
+        run: |
+          poetry run task test-not-fuzz
+      # Do not run the Hypothesis-based fuzz tests because they sometimes take longer to run on Windows and MacOS and this creates errors so use poetry run task test-not-fuzz
 
       - name: Configure Poetry for TestPyPI
         run: |
