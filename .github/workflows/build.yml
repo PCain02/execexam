@@ -86,28 +86,30 @@ jobs:
             # through Poetry on NixOS
             pipx install ruff
             poetry run task lint
-        # Run the tests
-        - name: Run Tests
+        # Run the tests and generate a log file
+        - name: Run Tests with Log Generation
           if: always()
           run: |
-            # do not run the Hypothesis-based fuzz tests
-            # because they sometimes take longer to run
-            # on Windows and MacOS and this creates errors
-            poetry run task test-not-fuzz
+            mkdir -p ./tests/logs
+            pytest --junitxml=./tests/logs/test-results.xml --log-cli-level=ERROR --log-file=./tests/logs/test-failures.log
+          # do not run the Hypothesis-based fuzz tests
+          # because they sometimes take longer to run
+          # on Windows and MacOS and this creates errors poetry run task test-not-fuzz
         # Upload test artifacts if tests fail and logs exist
-        - name: Upload Test Logs
+        # Check if logs exist after the test run
+        - name: Check for Test Logs
           if: failure()
           run: |
             mkdir -p ./tests/logs
             if [ -n "$(ls -A ./tests/logs)" ]; then
-              echo "Uploading logs..."
-              echo "::set-output name=log-exist::true"
+              echo "LOGS_EXIST=true" >> $GITHUB_ENV
+              echo "Logs found and ready to upload."
             else
+              echo "LOGS_EXIST=false" >> $GITHUB_ENV
               echo "No logs to upload."
-              echo "::set-output name=log-exist::false"
-            fi
-        - name: Upload Logs Artifact
-          if: steps.Upload_Test_Logs.outputs.log-exist == 'true'
+        # Upload test logs artifact if logs exist
+        - name: Upload Test Logs Artifact
+          if: failure() && env.LOGS_EXIST == 'true'
           uses: actions/upload-artifact@v3
           with:
             name: test-logs
