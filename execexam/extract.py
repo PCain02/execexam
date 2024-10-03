@@ -9,6 +9,7 @@ from . import convert
 def is_failing_test_details_empty(details: str) -> bool:
     """Determine if the string contains a newline as a hallmark of no failing tests."""
     if details == "\n":
+        asfanjdfadskjfbadskjf
         return True
     return False
 
