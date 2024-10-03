@@ -11,9 +11,9 @@ env:
 # Focuses on the master branch only
 on:
   push:
-    branches: [ main ]
+    branches: ['*']
   pull_request:
-    branches: [ main ]
+    branches: ['*']
 
 # Create one single job
 # This job performs all of the necessary checks
