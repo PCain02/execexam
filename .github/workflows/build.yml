@@ -96,6 +96,11 @@ jobs:
         run: |
           poetry install --with dev
 
+      # List installed packages for debugging purposes
+      - name: List Installed Packages
+        run: |
+          poetry show  # Display installed packages to verify hypothesis is included
+          
       # Run Linters to check code quality
       - name: Run Linters
         if: always()
@@ -118,12 +123,13 @@ jobs:
       - name: Check for Test Logs
         if: failure()  # Only run if previous steps failed
         run: |
-          if [ -n "$(ls -A ./tests/logs)" ]; then
+          if [ -d ./tests/logs ] && [ "$(ls -A ./tests/logs)" ]; then
             echo "LOGS_EXIST=true" >> $GITHUB_ENV
             echo "Logs found and ready to upload."
           else
             echo "LOGS_EXIST=false" >> $GITHUB_ENV
             echo "No logs to upload."
+          fi  # Ensure this closing statement is here
 
       # Upload the test logs as an artifact if they exist
       - name: Upload Test Logs Artifact
@@ -132,8 +138,3 @@ jobs:
         with:
           name: test-logs
           path: ./tests/logs
-
-      # List installed packages for debugging purposes
-      - name: List Installed Packages
-        run: |
-          poetry show  # Display installed packages to verify hypothesis is included
