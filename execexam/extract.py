@@ -9,7 +9,6 @@ from . import convert
 def is_failing_test_details_empty(details: str) -> bool:
     """Determine if the string contains a newline as a hallmark of no failing tests."""
     if details == "\n":
-        fsdjfdsjfsdiojf
         return True
     return False
 
@@ -32,7 +31,7 @@ def extract_test_run_details(details: Dict[Any, Any]) -> str:
     summary_details = details["summary"]
     # convert the dictionary of summary to a string
     summary_details_str = extract_details(summary_details)
-    return summary_details_str
+    return "False" # Change back after done TODO
 
 
 def extract_test_assertion_details(test_details: Dict[Any, Any]) -> str:
