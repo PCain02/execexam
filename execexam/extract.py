@@ -31,7 +31,7 @@ def extract_test_run_details(details: Dict[Any, Any]) -> str:
     summary_details = details["summary"]
     # convert the dictionary of summary to a string
     summary_details_str = extract_details(summary_details)
-    return "False" # Change back after done TODO
+    return summary_details_str + "FALSE"
 
 
 def extract_test_assertion_details(test_details: Dict[Any, Any]) -> str:
