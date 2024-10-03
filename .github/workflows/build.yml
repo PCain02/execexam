@@ -39,7 +39,7 @@ jobs:
             python-version: "3.12"
           - os: windows-latest
             python-version: "3.12"
-    
+
     # Define the workflow steps
     steps:
       # Checkout the code of the repository
@@ -112,7 +112,7 @@ jobs:
         run: |
           mkdir -p ./tests/logs
           pytest --junitxml=./tests/logs/test-results.xml --log-cli-level=ERROR --log-file=./tests/logs/test-failures.log
-        continue-on-error: true  # Allow subsequent steps to run even if tests fail
+        # Removed continue-on-error to ensure the workflow fails on test failures
 
       # Check for test logs to see if they exist
       - name: Check for Test Logs
@@ -132,7 +132,7 @@ jobs:
         with:
           name: test-logs
           path: ./tests/logs
-          
+
       # List installed packages for debugging purposes
       - name: List Installed Packages
         run: |
