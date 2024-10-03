@@ -84,7 +84,7 @@ jobs:
         - name: Install dependencies
           if: always()
           run: |
-            poetry install
+            poetry install --with dev
         # Run the linters
         - name: Run Linters
           if: always()
