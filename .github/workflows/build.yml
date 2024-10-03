@@ -8,7 +8,7 @@ env:
 
 # Controls when the action will run
 # Workflow begins with push or PR events
-# Focuses on the master branch only
+# Focuses on all branches
 on:
   push:
     branches: ['*']
@@ -39,79 +39,101 @@ jobs:
             python-version: "3.12"
           - os: windows-latest
             python-version: "3.12"
+    
     # Define the workflow steps
     steps:
-    # Checkout the code of the repository
-        - name: Check out Repository Code
-          uses: actions/checkout@v3
-          with:
-            fetch-depth: 0
-        # Setup Python for the current language version
-        - name: Setup Python ${{ matrix.python-version }}
-          if: always()
-          uses: actions/setup-python@v4
-          with:
-            python-version: ${{ matrix.python-version }}
-        # Cache Poetry dependencies to speed up future installs
-        - name: Cache Poetry dependencies
-          uses: actions/cache@v3
-          with:
-            path: ~/.cache/pypoetry/cache
-            key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-poetry-
-        - name: Install pytest
-          run: pip install pytest
-        - name: Cache pip downloads
-          uses: actions/cache@v3
-          with:
-            path: ~/.cache/pip
-            key: ${{ runner.os }}-pip-${{ hashFiles('**/poetry.lock') }}
-            restore-keys: |
-              ${{ runner.os }}-pip-
-        # Install pip
-        - name: Install Pip
-          if: always()
-          run: |
-            python -m pip install --upgrade pip
-        # Install poetry
-        - name: Install Poetry
-          if: always()
-          uses: abatilo/actions-poetry@v2.0.0
-          with:
-            poetry-version: 1.8.3
-        # Install dependencies
-        - name: Install dependencies
-          if: always()
-          run: |
-            poetry install --with dev
-        # Run the linters
-        - name: Run Linters
-          if: always()
-          run: |
-            # install ruff directly instead of managing
-            # it as a dependency with Poetry since ruff
-            # does not (always) install correctly
-            # through Poetry on NixOS
-            pipx install ruff
-            poetry run task lint
-        - name: Run Tests with Log Generation
-          run: |
-            mkdir -p ./tests/logs
-            pytest --junitxml=./tests/logs/test-results.xml --log-cli-level=ERROR --log-file=./tests/logs/test-failures.log
-          continue-on-error: true
-        - name: Check for Test Logs
-          if: failure()
-          run: |
-            if [ -n "$(ls -A ./tests/logs)" ]; then
-              echo "LOGS_EXIST=true" >> $GITHUB_ENV
-              echo "Logs found and ready to upload."
-            else
-              echo "LOGS_EXIST=false" >> $GITHUB_ENV
-              echo "No logs to upload."
-        - name: Upload Test Logs Artifact
-          if: failure() && env.LOGS_EXIST == 'true'
-          uses: actions/upload-artifact@v3
-          with:
-            name: test-logs
-            path: ./tests/logs
+      # Checkout the code of the repository
+      - name: Check out Repository Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # Setup Python for the current language version
+      - name: Setup Python ${{ matrix.python-version }}
+        if: always()
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Cache Poetry dependencies to speed up future installs
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pypoetry/cache
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      # Install pytest as a dependency
+      - name: Install pytest
+        run: pip install pytest
+
+      # Cache pip downloads for future use
+      - name: Cache pip downloads
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Install pip and upgrade to the latest version
+      - name: Install Pip
+        if: always()
+        run: |
+          python -m pip install --upgrade pip
+
+      # Install Poetry for dependency management
+      - name: Install Poetry
+        if: always()
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: 1.8.3
+
+      # Install project dependencies, including development ones
+      - name: Install dependencies
+        if: always()
+        run: |
+          poetry install --with dev
+
+      # Run Linters to check code quality
+      - name: Run Linters
+        if: always()
+        run: |
+          # Install ruff directly instead of managing
+          # it as a dependency with Poetry since ruff
+          # does not (always) install correctly
+          # through Poetry on NixOS
+          pipx install ruff
+          poetry run task lint
+
+      # Run Tests and generate logs for results
+      - name: Run Tests with Log Generation
+        run: |
+          mkdir -p ./tests/logs
+          pytest --junitxml=./tests/logs/test-results.xml --log-cli-level=ERROR --log-file=./tests/logs/test-failures.log
+        continue-on-error: true  # Allow subsequent steps to run even if tests fail
+
+      # Check for test logs to see if they exist
+      - name: Check for Test Logs
+        if: failure()  # Only run if previous steps failed
+        run: |
+          if [ -n "$(ls -A ./tests/logs)" ]; then
+            echo "LOGS_EXIST=true" >> $GITHUB_ENV
+            echo "Logs found and ready to upload."
+          else
+            echo "LOGS_EXIST=false" >> $GITHUB_ENV
+            echo "No logs to upload."
+
+      # Upload the test logs as an artifact if they exist
+      - name: Upload Test Logs Artifact
+        if: failure() && env.LOGS_EXIST == 'true'  # Only upload if there are logs and previous steps failed
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs
+          path: ./tests/logs
+          
+      # List installed packages for debugging purposes
+      - name: List Installed Packages
+        run: |
+          poetry show  # Display installed packages to verify hypothesis is included
