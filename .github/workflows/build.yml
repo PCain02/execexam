@@ -52,6 +52,14 @@ jobs:
           uses: actions/setup-python@v4
           with:
             python-version: ${{ matrix.python-version }}
+        # Cache Poetry dependencies to speed up future installs
+        - name: Cache Poetry dependencies
+          uses: actions/cache@v3
+          with:
+            path: ~/.cache/pypoetry/cache
+            key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+            restore-keys: |
+              ${{ runner.os }}-poetry-
         # Install pip
         - name: Install Pip
           if: always()
@@ -86,3 +94,10 @@ jobs:
             # because they sometimes take longer to run
             # on Windows and MacOS and this creates errors
             poetry run task test-not-fuzz
+        # Upload test artifacts if tests fail
+        - name: Upload Test Logs
+          if: failure()
+          uses: actions/upload-artifact@v3
+          with:
+            name: test-logs
+            path: ./tests/logs
