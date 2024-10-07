@@ -119,10 +119,12 @@ jobs:
         run: |
           mkdir -p ./tests/logs
           pytest --junitxml=./tests/logs/test-results.xml --log-cli-level=ERROR --log-file=./tests/logs/test-failures.log
+
         # Removed continue-on-error to ensure the workflow fails on test failures
       - name: Create dummy log
         run: echo "Dummy log entry" > tests/logs/test-results.log
       # Check for test logs to see if they exist
+      
       - name: Check for Test Logs
         if: failure()  # Only run if previous steps failed
         run: |

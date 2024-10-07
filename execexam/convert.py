@@ -15,4 +15,4 @@ def path_to_string(path_name: Path, levels: int = 4) -> str:
         start_index = len(parts) - levels
         return Path("<...>", *parts[start_index:]).as_posix()
     else:
-        return path_name.as_posix() + "FALSE"
+        return path_name.as_posix() + "FALSE" #TODO: CHANGE BACK when done
