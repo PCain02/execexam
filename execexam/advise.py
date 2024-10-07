@@ -134,6 +134,9 @@ def fix_failures(  # noqa: PLR0913
             + f"Here is a brief overview of the test failure information: {failing_test_details}"
             + f"Here is the source code for the one or more failing test(s): {failing_test_code}"
         )
+        console.print(f"This is the test overview: {test_overview}")
+        console.print(f"This is the failing test code: {failing_test_code}")
+        console.print(f"This is the failing details:{failing_test_code}")
         # the API key approach expects that the person running the execexam
         # tool has specified an API key for a support cloud-based LLM system
         if advice_method == enumerations.AdviceMethod.api_key:
