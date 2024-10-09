@@ -1,5 +1,7 @@
 """Offer advice through the use of the LLM-Based mentoring system."""
 
+import inspect
+import re
 import sys
 from typing import List, Optional
 
@@ -28,6 +30,25 @@ def validate_url(value: str) -> bool:
     if not validators.url(value):
         return False
     return True
+
+
+def extract_tested_function(failing_test_code: str) -> str:
+    """Extract the function being tested from the failing test code."""
+    # Find all function calls in the code
+    function_calls = re.findall(r"(\w+)\(", failing_test_code)
+
+    # List of prefixes for functions we want to ignore
+    ignore_prefixes = ["assert", "test_"]
+
+    # Check each function call
+    for func_name in function_calls:
+        # If the function name doesn't start with any ignore prefix, return it
+        if not any(func_name.startswith(prefix) for prefix in ignore_prefixes):
+            return func_name
+
+    # If no matching function is found, return the failing_test_code so that at least something is passed to the llm model
+    return failing_test_code
+
 
 
 def check_advice_model(
@@ -112,6 +133,9 @@ def fix_failures(  # noqa: PLR0913
         # the filtered test output and the details about the passing
         # and failing assertions in the test cases
         test_overview = filtered_test_output + exec_exam_test_assertion_details
+
+        tested_function = extract_tested_function(failing_test_code)
+        console.print(f"Tested function: {tested_function}")
         # create an LLM debugging request that contains all of the
         # information that is needed to provide advice about how
         # to fix the bug(s) in the program that are part of an
