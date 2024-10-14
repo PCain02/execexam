@@ -1,9 +1,15 @@
 """Extract contents from data structures."""
 
+import ast
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional, Union
 
+import sys 
+import os
 from . import convert
+import subprocess
+import inspect
+import importlib.util
 
 
 def is_failing_test_details_empty(details: str) -> bool:
@@ -178,3 +184,114 @@ def extract_test_output_multiple_labels(
             filtered_output += line + "\n"
     # return the filtered output
     return filtered_output
+
+def extract_imports_from_test(test_file: str) -> List[str]:
+    """Extract import statements from a given test file using AST."""
+    with open(test_file, 'r') as file:
+        tree = ast.parse(file.read(), filename=test_file)
+    
+    imports = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.append(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module
+            if module is not None:
+                imports.append(module)
+    
+    return imports
+
+def resolve_import_path(module_name: str, test_file_path: str) -> Optional[Path]: 
+    """Try to resolve the import path to a source file."""
+    try:
+        # Resolve relative imports based on the test file location
+        test_dir = os.path.dirname(test_file_path)
+        sys.path.insert(0, test_dir)
+        
+        # Attempt to locate the module
+        spec = importlib.util.find_spec(module_name)
+        if spec and spec.origin:
+            return spec.origin
+    except ImportError:
+        pass
+    finally:
+        sys.path.pop(0)
+    
+    return None
+
+def find_source_file(root_dir: Path, function_name: str) -> Path:
+    """Recursively search for the source file containing the function definition."""
+    print(f"Searching for the source file containing the function: {function_name}")
+    
+    for dirpath, _, filenames in os.walk(root_dir):
+        for filename in filenames:
+            if filename.endswith(".py"):
+                file_path = Path(dirpath) / filename
+                with open(file_path, "r", encoding="utf-8") as source_file:
+                    try:
+                        source_tree = ast.parse(source_file.read())
+                        for node in ast.walk(source_tree):
+                            if isinstance(node, ast.FunctionDef) and node.name == function_name:
+                                print(f"Found function '{function_name}' in file: {file_path}")
+                                return file_path
+                    except Exception as e:
+                        print(f"Error reading {file_path}: {e}")
+
+    raise FileNotFoundError(f"Source file containing function '{function_name}' not found in {root_dir}.")
+
+
+def get_source_file_from_test(test_file_path: str) -> Optional[Path]:
+    """Extract imports and attempt to find the source code."""
+    imports = extract_imports_from_test(test_file_path)
+    
+    source_files = []
+    for module in imports:
+        source_path = resolve_import_path(module, test_file_path)
+        if source_path:
+            source_files.append(source_path)
+    
+    return source_files
+
+def extract_tested_function(test_name: Path, test_file_path: Path, project_root: Path) -> str:
+    """Extract the code of the function being tested and automatically locate the source file."""
+    print(f"Processing test file: {test_file_path}")
+
+    if not os.path.exists(test_file_path):
+        raise FileNotFoundError(f"Test file not found: {test_file_path}")
+
+    # Parse the test file to get the AST tree
+    with open(test_file_path, "r", encoding="utf-8") as test_file:
+        test_tree = ast.parse(test_file.read())
+
+    function_calls = []
+
+    # Walk through the AST nodes and collect all function calls
+    for node in ast.walk(test_tree):
+        if isinstance(node, ast.Call) and hasattr(node.func, 'id'):
+            function_calls.append(node)
+
+    if not function_calls:
+        print("No function calls found in the test file.")
+        return None
+
+    # Assuming the first function call is the one being tested
+    tested_function_name = function_calls[0].func.id
+    print(f"Tested function found: {tested_function_name}")
+
+    # Automatically find the source file containing the function definition
+    source_file_path = find_source_file(project_root, tested_function_name)
+
+    print(f"Source file found at: {source_file_path}")
+
+    # Parse the source file to get the AST tree
+    try:
+        with open(source_file_path, "r", encoding="utf-8") as source_file:
+            source_tree = ast.parse(source_file.read())
+    except Exception as e:
+        print(f"Failed to open source file: {e}")
+        raise
+
+    # Further processing of the source_tree can be done here...
+
+    return tested_function_name

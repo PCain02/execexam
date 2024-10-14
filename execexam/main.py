@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import time
+import inspect
 import warnings
 from pathlib import Path
 from typing import List, Optional
@@ -239,6 +240,8 @@ def run(  # noqa: PLR0913, PLR0915
     ) = extract.extract_failing_test_details(json_report_plugin.report)  # type: ignore
     failing_test_code_overall = ""
     # there was at least one failing test case
+    failing_code =""
+    source_file_path =""
     if not extract.is_failing_test_details_empty(failing_test_details):
         # display additional helpful information about the failing
         # test cases; this is the error message that would appear
@@ -262,22 +265,12 @@ def run(  # noqa: PLR0913, PLR0915
         for failing_test_path_dict in failing_test_path_dicts:
             test_name = failing_test_path_dict["test_name"]
             failing_test_path = failing_test_path_dict["test_path"]
-            # build the command for running symbex; this tool can
-            # perform static analysis of Python source code and
-            # extract the code of a function inside of a file
-            command = f"symbex {test_name} -f {failing_test_path}"
-            # run the symbex command and collect its output
-            process = subprocess.run(
-                command,
-                shell=True,
-                check=True,
-                text=True,
-                capture_output=True,
-            )
-            # delete an extra blank line from the end of the file
-            # if there are two blank lines in a row
-            sanitized_output = process.stdout.rstrip() + "\n"
-            failing_test_code_overall += sanitized_output
+
+            # Extract the code of the function being tested
+            failing_code = extract.extract_tested_function(test_name, failing_test_path, project_root_path)
+            
+            if failing_code is not None:
+                failing_test_code_overall += failing_code + "\n"  # Collect all failing function codes
             # display the source code of the failing test
             # --> CODE
             syntax = True
@@ -286,7 +279,7 @@ def run(  # noqa: PLR0913, PLR0915
                 console,
                 enumerations.ReportType.testcodes,
                 report,
-                sanitized_output,
+                failing_code,
                 "Failing Test",
                 fancy,
                 syntax,
@@ -321,17 +314,18 @@ def run(  # noqa: PLR0913, PLR0915
         # which advice should be sought from the LLM
         if return_code != 0:
             advise.fix_failures(
-                console,
-                filtered_test_output,
-                exec_exam_test_assertion_details,
-                filtered_test_output + exec_exam_test_assertion_details,
-                failing_test_details,
-                failing_test_code_overall,
-                advice_method,
-                advice_model,
-                advice_server,
-                syntax_theme,
-                fancy,
+            console=console,
+            filtered_test_output=filtered_test_output,
+            exec_exam_test_assertion_details=exec_exam_test_assertion_details,
+            test_overview=  filtered_test_output + exec_exam_test_assertion_details,
+            failing_test_details=failing_test_details,
+            failing_code=failing_code,  # Pass the actual failing code here
+            failing_test_code=failing_test_code_overall,  # Pass the failing test code here
+            advice_method=advice_method,
+            advice_model=advice_model,
+            advice_server=advice_server,
+            syntax_theme=syntax_theme,
+            fancy=fancy
             )
             debugger.debug(debug, debugger.Debug.get_advice_with_llm.value)
         # there were no test failures and thus there is no need

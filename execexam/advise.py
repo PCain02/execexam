@@ -12,6 +12,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from . import enumerations
+from execexam import extract
 
 
 def load_litellm() -> None:
@@ -30,26 +31,6 @@ def validate_url(value: str) -> bool:
     if not validators.url(value):
         return False
     return True
-
-
-def extract_tested_function(failing_test_code: str) -> str:
-    """Extract the function being tested from the failing test code."""
-    # Find all function calls in the code
-    function_calls = re.findall(r"(\w+)\(", failing_test_code)
-
-    # List of prefixes for functions we want to ignore
-    ignore_prefixes = ["assert", "test_"]
-
-    # Check each function call
-    for func_name in function_calls:
-        # If the function name doesn't start with any ignore prefix, return it
-        if not any(func_name.startswith(prefix) for prefix in ignore_prefixes):
-            return func_name
-
-    # If no matching function is found, return the failing_test_code so that at least something is passed to the llm model
-    return failing_test_code
-
-
 
 def check_advice_model(
     console: Console,
@@ -112,13 +93,14 @@ def check_advice_server(
         sys.exit(return_code)
 
 
-def fix_failures(  # noqa: PLR0913
+def fix_failures(
     console: Console,
     filtered_test_output: str,
     exec_exam_test_assertion_details: str,
     test_overview: str,
     failing_test_details: str,
-    failing_test_code: str,
+    failing_code: str,  # The actual code that failed
+    failing_test_code: str,  # The test cases that failed
     advice_method: enumerations.AdviceMethod,
     advice_model: str,
     advice_server: str,
@@ -133,9 +115,7 @@ def fix_failures(  # noqa: PLR0913
         # the filtered test output and the details about the passing
         # and failing assertions in the test cases
         test_overview = filtered_test_output + exec_exam_test_assertion_details
-
-        tested_function = extract_tested_function(failing_test_code)
-        console.print(f"Tested function: {tested_function}")
+        console.print(f"Tested function: {failing_code}")
         # create an LLM debugging request that contains all of the
         # information that is needed to provide advice about how
         # to fix the bug(s) in the program that are part of an
@@ -154,9 +134,10 @@ def fix_failures(  # noqa: PLR0913
             + "Always be helpful, upbeat, friendly, encouraging, and concise when making a response."
             + "Your task is to suggest, in a step-by-step fashion, how to fix the bug(s) in the program?"
             + "What follows is all of the information you need to complete the debugging task."
-            + f"Here is the test overview with test output and details about test assertions: {test_overview}"
-            + f"Here is a brief overview of the test failure information: {failing_test_details}"
-            + f"Here is the source code for the one or more failing test(s): {failing_test_code}"
+            + f"Here is the code that failed {failing_code}."
+            + f"Here is the test overview with test output and details about test assertions: {test_overview}."
+            + f"Here is a brief overview of the test failure information: {failing_test_details}."
+            + f"Here is the source code for the one or more failing test(s): {failing_test_code}."
         )
         console.print(f"This is the test overview: {test_overview}")
         console.print(f"This is the failing test code: {failing_test_code}")
