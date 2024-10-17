@@ -11,6 +11,7 @@ import warnings
 from pathlib import Path
 from typing import List, Optional
 
+
 import pytest
 import typer
 from pytest_jsonreport.plugin import JSONReport  # type: ignore
