@@ -1,5 +1,6 @@
 """Run an executable examination."""
 
+import ast
 import io
 import os
 import subprocess
@@ -8,7 +9,7 @@ import threading
 import time
 import warnings
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, Tuple, List, Optional
 
 import pytest
 import typer
@@ -36,6 +37,89 @@ skip = ["keywords", "setup", "teardown"]
 # create a variable of the main pytest issues
 pytest_labels = ["FAILED", "ERROR", "WARNING", "COLLECTERROR"]
 
+
+class TestFailureAnalyzer(ast.NodeVisitor):
+    def __init__(self):
+        self.current_function = None
+        self.functions = {}
+
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        """Store the function's source code and its starting line number."""
+        self.functions[node.name] = {
+            'line_no': node.lineno,
+            'source': ast.get_source_segment(self.source_code, node)
+        }
+        self.generic_visit(node)
+
+def analyze_failing_test(test_code: str) -> Dict[str, Dict[str, str]]:
+    """
+    Analyzes the failing test code to extract the tested functions.
+    Args:
+        test_code: The source code of the failing test
+    Returns:
+        Dictionary mapping function names to their details (line number and source)
+    """
+    tree = ast.parse(test_code)
+    analyzer = TestFailureAnalyzer()
+    analyzer.source_code = test_code
+    analyzer.visit(tree)
+    return analyzer.functions
+
+def find_tested_functions(test_code: str) -> List[Tuple[str, int, str]]:
+    """
+    Finds all function names that are being tested in the test code.
+
+    Args:
+        test_code: The source code of the failing test
+
+    Returns:
+        List of tuples containing (function_name, line_number, source_code)
+    """
+    functions = []
+    tree = ast.parse(test_code)
+
+    # Look for assert statements that call functions
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assert):
+            if isinstance(node.test, ast.Call):
+                func_name = None
+                if hasattr(node.test.func, 'id'):
+                    func_name = node.test.func.id
+                elif hasattr(node.test.func, 'attr'):
+                    func_name = node.test.func.attr
+
+                if func_name:
+                    source = ast.get_source_segment(test_code, node)
+                    functions.append((func_name, node.lineno, source))
+
+    return functions
+
+def analyze_test_failures(failing_test_code: str) -> Dict[str, List[Dict[str, any]]]:
+    """
+    Main function to analyze failing test code and extract relevant information.
+
+    Args:
+        failing_test_code: The source code of the failing tests
+
+    Returns:
+        Dictionary containing analyzed test failures with function details
+    """
+    results = {}
+
+    # Split the failing test code into individual test functions
+    test_functions = analyze_failing_test(failing_test_code)
+
+    for test_name, test_details in test_functions.items():
+        # Find the functions being tested within each test function
+        tested_functions = find_tested_functions(test_details['source'])
+
+        results[test_name] = [{
+            'tested_function': func_name,
+            'line_number': line_no,
+            'assert_statement': source
+        } for func_name, line_no, source in tested_functions]
+
+    return results
 
 @cli.command()
 def run(  # noqa: PLR0913, PLR0915
@@ -372,6 +456,15 @@ def run(  # noqa: PLR0913, PLR0915
             "Python",
             newline,
         )
+
+    if failing_test_code_overall:
+        failure_analysis = analyze_test_failures(failing_test_code_overall)
+    for test_name, failures in failure_analysis.items():
+        print(f"\nFailing test: {test_name}")
+        for failure in failures:
+            print(f"- Testing function: {failure['tested_function']}")
+            print(f"  At line: {failure['line_number']}")
+            print(f"  Assert: {failure['assert_statement']}")
     # display a final message about the return code, using
     # a human-readable message that indicates the overall status
     exit_code_message = display.get_display_return_code(return_code, fancy)
