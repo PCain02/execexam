@@ -147,6 +147,10 @@ def fix_failures(  # noqa: PLR0913
         # Call the handle_connection_error function
         handle_connection_error(console)
         return
+    
+    # Ensure we don't reference undefined variable failing_code
+    failing_code = failing_test_code if failing_test_code else "No failing code available"
+    
     with console.status(
         "[bold green] Getting Feedback from ExecExam's Coding Mentor"
     ):
@@ -154,6 +158,8 @@ def fix_failures(  # noqa: PLR0913
         # the filtered test output and the details about the passing
         # and failing assertions in the test cases
         test_overview = filtered_test_output + exec_exam_test_assertion_details
+        console.print(f"Tested function: {failing_code}")
+
         # create an LLM debugging request that contains all of the
         # information that is needed to provide advice about how
         # to fix the bug(s) in the program that are part of an
@@ -172,10 +178,15 @@ def fix_failures(  # noqa: PLR0913
             + "Always be helpful, upbeat, friendly, encouraging, and concise when making a response."
             + "Your task is to suggest, in a step-by-step fashion, how to fix the bug(s) in the program?"
             + "What follows is all of the information you need to complete the debugging task."
-            + f"Here is the test overview with test output and details about test assertions: {test_overview}"
-            + f"Here is a brief overview of the test failure information: {failing_test_details}"
-            + f"Here is the source code for the one or more failing test(s): {failing_test_code}"
+            + f"Here is the code that failed {failing_code}."
+            + f"Here is the test overview with test output and details about test assertions: {test_overview}."
+            + f"Here is a brief overview of the test failure information: {failing_test_details}."
+            + f"Here is the source code for the one or more failing test(s): {failing_test_code}."
         )
+        console.print(f"This is the test overview: {test_overview}")
+        console.print(f"This is the failing test code: {failing_test_code}")
+        console.print(f"This is the failing details: {failing_test_details}")
+
         # the API key approach expects that the person running the execexam
         # tool has specified an API key for a support cloud-based LLM system
         if advice_method == enumerations.AdviceMethod.api_key:
@@ -210,6 +221,7 @@ def fix_failures(  # noqa: PLR0913
                     ),
                 )
                 console.print()
+        
         # the apiserver approach expects that the person running the execexam
         # tool will specify the URL of a remote LLM-based mentoring system
         # that is configured to provide access to an LLM system for advice
@@ -252,3 +264,4 @@ def fix_failures(  # noqa: PLR0913
                     ),
                 )
                 console.print()
+                
