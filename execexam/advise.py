@@ -4,7 +4,8 @@ import ast
 import random
 import socket
 import sys
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Set
 
 import openai
 import validators
@@ -68,47 +69,50 @@ def check_internet_connection(timeout: int = 5) -> bool:
         return False
 
 
-class FunctionCallVisitor(ast.NodeVisitor):
-    """AST visitor to collect function calls in a test function."""
-    def __init__(self):
-        self.function_calls = []
+def extract_failing_functions(failing_test_code: str) -> Set[str]:
+    """Extract function calls from failing test code. """
+    try:
+        # Parse the code into an AST
+        tree = ast.parse(failing_test_code)
 
-    def visitCall(self, node):
-        """Visit a Call node and collect the function name."""
-        if isinstance(node.func, ast.Name):
-            self.function_calls.append(node.func.id)
-        self.generic_visit(node)
+        # Create a custom AST visitor to find function calls
+        class FunctionCallVisitor(ast.NodeVisitor):
+            """Custom AST visitor to find function calls."""
+            def __init__(self):
+                self.function_calls = set()
 
+            def visit_Call(self, node):
+                """Visit call nodes and extract function names."""
+                if isinstance(node.func, ast.Attribute):
+                    # Handle method calls (e.g., object.method())
+                    self.function_calls.add(node.func.attr)
+                elif isinstance(node.func, ast.Name):
+                    # Handle direct function calls
+                    self.function_calls.add(node.func.id)
+                # Continue traversing the tree
+                self.generic_visit(node)
 
-def analyze_failing_tests(failing_test_code: str) -> Dict[str, List[str]]:
-    """Analyze failing test code to extract called functions using AST."""
-    # Parse the test code into an AST
-    tree = ast.parse(failing_test_code)
+        # Create visitor and traverse the AST
+        visitor = FunctionCallVisitor()
+        visitor.visit(tree)
 
-    # Dictionary to store results
-    test_analysis = {}
+        # Remove common test framework function names
+        test_framework_functions = {"assert", "pytest"}
 
-    # Find all test functions in the code
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
-            # Create visitor to collect function calls
-            visitor = FunctionCallVisitor()
-            visitor.visit(node)
+        # Filter out test framework functions and test_ prefixed functions
+        actual_functions = {func for func in visitor.function_calls
+                          if func not in test_framework_functions
+                          and not func.startswith("test_")}
 
-            # Filter out pytest and built-in function calls
-            implementation_calls = [
-                call for call in visitor.function_calls
-                if not call.startswith(("test_", "assert", "pytest"))
-            ]
+        return actual_functions
 
-            # Store the unique function calls for this test
-            test_analysis[node.name] = list(set(implementation_calls))
-
-    return test_analysis
-
-
-# using inspect, i want to find the name of the function cause the test cases to fail
-
+    except SyntaxError:
+        # Handle invalid Python code
+        return set()
+    except Exception as e:
+        # Handle any other parsing errors
+        console.print(f"Error analyzing test code: {str(e)}")
+        return set()
 
 
 def check_advice_model(
@@ -197,8 +201,9 @@ def fix_failures(  # noqa: PLR0913
         # the test overview is a string that contains both
         # the filtered test output and the details about the passing
         # and failing assertions in the test cases
-        test_analysis = analyze_failing_tests(failing_test_code)
         test_overview = filtered_test_output + exec_exam_test_assertion_details
+        failing_functions = extract_failing_functions(failing_test_code)
+        console.print(f"Detected failing functions: {failing_functions}")
         console.print(f"This is the test overview: {test_overview}")
         console.print(f"This is the filtered test output: {filtered_test_output}")
         console.print(f"This is the exec exam test assertion details: {exec_exam_test_assertion_details}")
@@ -206,8 +211,6 @@ def fix_failures(  # noqa: PLR0913
         console.print(f"This is the test overview: {test_overview}")
         console.print(f"This is the failing test details: {failing_test_details}")
         console.print(f"This is the failing test code: {failing_test_code}")
-        console.print(f"This is the test_analysis: {test_analysis}")
-
         # create an LLM debugging request that contains all of the
         # information that is needed to provide advice about how
         # to fix the bug(s) in the program that are part of an
