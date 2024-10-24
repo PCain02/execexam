@@ -339,12 +339,20 @@ def run(  # noqa: PLR0913, PLR0915
         # there was a test failure and that overall there
         # is at least one mistake in the examination for
         # which advice should be sought from the LLM
+        # Extract the failing implementation code
+        failing_code = extract.extract_failing_implementation_code(json_report_plugin.report)
+        if failing_code is None:
+            print("WARNING: Could not extract failing implementation code")
+        else:
+            print("Found failing code:")
+            print(failing_code)
         if return_code != 0:
             advise.fix_failures(
                 console,
                 filtered_test_output,
                 exec_exam_test_assertion_details,
                 filtered_test_output + exec_exam_test_assertion_details,
+                failing_code,
                 failing_test_details,
                 failing_test_code_overall,
                 advice_method,

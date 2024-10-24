@@ -133,6 +133,7 @@ def fix_failures(  # noqa: PLR0913
     filtered_test_output: str,
     exec_exam_test_assertion_details: str,
     test_overview: str,
+    failing_code: str,
     failing_test_details: str,
     failing_test_code: str,
     advice_method: enumerations.AdviceMethod,
@@ -172,12 +173,17 @@ def fix_failures(  # noqa: PLR0913
             + "Always be helpful, upbeat, friendly, encouraging, and concise when making a response."
             + "Your task is to suggest, in a step-by-step fashion, how to fix the bug(s) in the program?"
             + "What follows is all of the information you need to complete the debugging task."
+            + f"Here is the failing code: {failing_code}"
             + f"Here is the test overview with test output and details about test assertions: {test_overview}"
             + f"Here is a brief overview of the test failure information: {failing_test_details}"
             + f"Here is the source code for the one or more failing test(s): {failing_test_code}"
         )
         # the API key approach expects that the person running the execexam
         # tool has specified an API key for a support cloud-based LLM system
+        print(f"Here is the failing code: {failing_code}")
+        print(f"Here is the test overview: {test_overview}")
+        print(f"Here is the failing test details: {failing_test_details}")
+        print(f"Here is the failing test code: {failing_test_code}")
         if advice_method == enumerations.AdviceMethod.api_key:
             # submit the debugging request to the LLM-based mentoring system
             response = completion(  # type: ignore

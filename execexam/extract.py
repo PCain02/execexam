@@ -1,7 +1,8 @@
 """Extract contents from data structures."""
 
+import ast
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 
 from . import convert
 
@@ -178,3 +179,84 @@ def extract_test_output_multiple_labels(
             filtered_output += line + "\n"
     # return the filtered output
     return filtered_output
+
+
+def extract_failing_implementation_code(json_report: Dict[Any, Any], debug: bool = True) -> Optional[str]:
+    """Extract the source code of the failing implementation from pytest's JSON report."""
+    # Make a function to print the debugging statements
+    def debug_print(msg: str) -> None:
+        if debug:
+            print(f"DEBUG: {msg}")
+    # If the report is empty it means no tests were found
+    if not json_report or 'tests' not in json_report:
+        debug_print("No tests found in JSON report")
+        return None    
+    # Find the first failing test
+    failing_tests = [test for test in json_report['tests'] 
+                    if test.get('outcome') in ('failed', 'error')]
+    if not failing_tests:
+        # debug_print("No failing tests found")
+        return None 
+    failing_test = failing_tests[0]
+    # debug_print(f"Found failing test: {failing_test.get('nodeid', '')}")
+    # Extract traceback information from the test failure
+    if 'call' in failing_test and 'traceback' in failing_test['call']:
+        traceback_entries = failing_test['call']['traceback']
+        # debug_print(f"Found {len(traceback_entries)} traceback entries")
+        for entry in traceback_entries:
+            # Look for the actual source file where the error occurred
+            # (not the test file or pytest internals)
+            path = entry.get('path')
+            lineno = entry.get('lineno')
+            # debug_print(f"Examining traceback entry: {path}:{lineno}")
+            if path and not any(x in path for x in ['test_', 'pytest', 'site-packages', 'lib']):
+                # debug_print(f"Found potential implementation file: {path}")
+                try:
+                    with open(path, 'r') as f:
+                        content = f.read()
+                    # Parse the file to find the function containing the error line
+                    tree = ast.parse(content)
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.FunctionDef):
+                            # Check if this function contains the error line
+                            if node.lineno <= lineno <= node.end_lineno:
+                                func_source = '\n'.join(
+                                    content.splitlines()[node.lineno-1:node.end_lineno]
+                                )
+                                # debug_print(f"Found function containing error: {node.name}")
+                                return func_source
+                except Exception as e:
+                    # debug_print(f"Error processing file {path}: {e}")
+                    continue
+    # If we couldn't find the source through traceback, try to find the function name
+    # from the test name and search all Python files in the project
+    # debug_print("Trying to find source through test name...")
+    test_name = failing_test.get('nodeid', '').split('::')[-1]
+    if test_name.startswith('test_'):
+        func_name = test_name[5:]  # Remove 'test_' prefix
+        # debug_print(f"Looking for implementation of: {func_name}")
+        # Start from the test file's directory and search upwards
+        test_path = Path(failing_test.get('nodeid', '').split('::')[0])
+        current_dir = test_path.parent
+        for _ in range(3):  # Look up to 3 directory levels
+            # debug_print(f"Searching in directory: {current_dir}")
+            for py_file in current_dir.rglob('*.py'):
+                if 'test_' not in py_file.name and py_file.is_file():
+                    # debug_print(f"Examining file: {py_file}")
+                    try:
+                        with open(py_file, 'r') as f:
+                            content = f.read()
+                        tree = ast.parse(content)
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.FunctionDef) and node.name == func_name:
+                                func_source = '\n'.join(
+                                    content.splitlines()[node.lineno-1:node.end_lineno]
+                                )
+                                # debug_print(f"Found matching function in {py_file}")
+                                return func_source
+                    except Exception as e:
+                        # debug_print(f"Error examining file {py_file}: {e}")
+                        continue
+            current_dir = current_dir.parent  
+    # debug_print("Could not find implementation code")
+    return None
