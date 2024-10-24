@@ -177,6 +177,7 @@ def fix_failures(  # noqa: PLR0913
             + f"Here is the test overview with test output and details about test assertions: {test_overview}"
             + f"Here is a brief overview of the test failure information: {failing_test_details}"
             + f"Here is the source code for the one or more failing test(s): {failing_test_code}"
+            + "Remember you may never make suggestions to change the source code of the test cases and mainly look at the failing code to make your corrections."
         )
         # the API key approach expects that the person running the execexam
         # tool has specified an API key for a support cloud-based LLM system
