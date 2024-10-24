@@ -1,10 +1,17 @@
 """Extract contents from data structures."""
 
+import inspect
+import importlib.util
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+import os
+import re
+from rich.console import Console
 
 from . import convert
 
+# create a default console
+console = Console()
 
 def is_failing_test_details_empty(details: str) -> bool:
     """Determine if the string contains a newline as a hallmark of no failing tests."""
@@ -178,3 +185,45 @@ def extract_test_output_multiple_labels(
             filtered_output += line + "\n"
     # return the filtered output
     return filtered_output
+
+def extract_failed_function_from_traceback(test_file):
+    cache_file = os.path.join('.pytest_cache', 'lastfailed')
+    if os.path.exists(cache_file):
+        with open(cache_file, 'r') as f:
+            last_failed = f.read().strip()
+
+        # Assuming the format is "test_module.py::test_function"
+        match = re.search(r'(\w+\.py)::(\w+)', last_failed)
+        if match:
+            failed_test_module, failed_function = match.groups()
+            return failed_test_module, failed_function
+    return None, None
+
+def extract_failing_function_code(project: str, failed_test_module: str, failed_function: str) -> str:
+    """Extract the source code of the failing function using inspect."""
+    # Construct the full path to the module
+    source_code = ""
+    module_path = os.path.join(project, f"{failed_test_module}.py")
+
+    console.print(f"[bold blue]Loading module from: {module_path}")
+
+    # Load the module dynamically
+    spec = importlib.util.spec_from_file_location(failed_test_module, module_path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # Load the module
+
+    # Retrieve the function object using getattr
+    function_object = getattr(module, failed_function, None)
+    
+    if function_object:
+        # Use inspect to get the source code of the function
+        try:
+            source_code = inspect.getsource(function_object)
+            console.print(f"[bold red]Failing function code:\n{source_code}")
+            return source_code
+        except OSError as e:
+            console.print(f"[bold red]Error retrieving source code: {e}")
+            return source_code
+    else:
+        console.print(f"[bold red]Function {failed_function} not found in {failed_test_module}")
+        return source_code

@@ -201,6 +201,15 @@ def run(  # noqa: PLR0913, PLR0915
     # restore stdout and stderr; this will allow
     # the execexam program to continue to produce
     # output in the console
+    sys.stdout = sys.__stdout__ #DELETE LATER
+    sys.stderr = sys.__stderr__ #DELETE LATER
+    console.print("EXTRACTING")
+    failed_test_module, failed_function = extract.extract_failed_function_from_traceback(tests) 
+    console.print(f"This is the failed test module: {failed_test_module}")
+    console.print(f"This is the failed function: {failed_function}")
+    console.print(f"This is the project {project}")
+    if failed_test_module and failed_function:
+        failing_code = extract.extract_failing_function_code(str(project), failed_test_module, failed_function)
     sys.stdout = sys.__stdout__
     sys.stderr = sys.__stderr__
     debugger.debug(debug, debugger.Debug.stopped_capturing_output.value)
@@ -258,6 +267,7 @@ def run(  # noqa: PLR0913, PLR0915
         failing_test_path_dicts,
     ) = extract.extract_failing_test_details(json_report_plugin.report)  # type: ignore
     failing_test_code_overall = ""
+    failing_code = ""
     # there was at least one failing test case
     if not extract.is_failing_test_details_empty(failing_test_details):
         # display additional helpful information about the failing
@@ -345,6 +355,7 @@ def run(  # noqa: PLR0913, PLR0915
                 filtered_test_output,
                 exec_exam_test_assertion_details,
                 filtered_test_output + exec_exam_test_assertion_details,
+                failing_code,
                 failing_test_details,
                 failing_test_code_overall,
                 advice_method,

@@ -133,6 +133,7 @@ def fix_failures(  # noqa: PLR0913
     filtered_test_output: str,
     exec_exam_test_assertion_details: str,
     test_overview: str,
+    failing_code: str,
     failing_test_details: str,
     failing_test_code: str,
     advice_method: enumerations.AdviceMethod,
@@ -147,9 +148,6 @@ def fix_failures(  # noqa: PLR0913
         # Call the handle_connection_error function
         handle_connection_error(console)
         return
-    
-    # Ensure we don't reference undefined variable failing_code
-    failing_code = failing_test_code if failing_test_code else "No failing code available"
     
     with console.status(
         "[bold green] Getting Feedback from ExecExam's Coding Mentor"
