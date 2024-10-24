@@ -133,7 +133,7 @@ def fix_failures(  # noqa: PLR0913
     filtered_test_output: str,
     exec_exam_test_assertion_details: str,
     test_overview: str,
-    failing_code: str,
+    failing_code: List[str],
     failing_test_details: str,
     failing_test_code: str,
     advice_method: enumerations.AdviceMethod,
