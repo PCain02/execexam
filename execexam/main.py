@@ -41,7 +41,12 @@ pytest_labels = ["FAILED", "ERROR", "WARNING", "COLLECTERROR"]
 def tldr_callback(value: bool) -> None:
     """Display a list of example commands and their descriptions."""
     if value:
-        display.display_tldr(console)
+        # get the command from the command line arguments if provided
+        args = sys.argv
+        chosen_command = None
+        if len(args) > 2:  # if there's an argument after --tldr
+            chosen_command = args[2]
+        display.display_tldr(console, chosen_command)
         raise typer.Exit()
 
 
@@ -55,14 +60,12 @@ def run(  # noqa: PLR0913, PLR0915
         ...,
         help="Test file or test directory",
     ),
-    tldr: Annotated[
-        Optional[bool],
-        typer.Option(
-            "--tldr",
-            callback=tldr_callback,
-            help="Display summary of commands",
-        ),
-    ] = None,
+    tldr: Annotated[bool, typer.Option] = typer.Option(
+        False,
+        "--tldr",
+        callback=tldr_callback,
+        help="Display summary of commands",
+    ),
     report: Optional[List[enumerations.ReportType]] = typer.Option(
         None,
         help="Types of reports to generate",
