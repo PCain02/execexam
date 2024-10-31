@@ -65,7 +65,7 @@ def display_tldr(console: Console, chosen_command: str = None) -> None:
         if chosen_command in commands:
             command_info = commands[chosen_command]
             console.print(f"[bold cyan]{chosen_command}[/bold cyan]:")
-            console.print(f"Command: [bold cyan]{command_info['syntax']}[/bold cyan]")
+            console.print(f"Command: [bold cyan]{command_info['command']}[/bold cyan]")
             console.print(f"{command_info['description']}")
         else:
             # Use difflib to find the closest command match
