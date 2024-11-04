@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
-from difflib import get_close_matches
+from thefuzz import fuzz
 
 from . import enumerations
 
@@ -33,6 +33,7 @@ def get_display_return_code(return_code: int, fancy: bool) -> str:
 
 def display_tldr(console: Console, chosen_command: str = None) -> None:
     """Display a list of example commands and their detailed descriptions with fuzzy matching."""
+    # dictionary of available commands with their usage and descriptions
     commands = {
         "mark": {
             "command": "poetry run execexam <path-to-project> <path-to-tests> --mark <mark_type>",
@@ -60,35 +61,56 @@ def display_tldr(console: Console, chosen_command: str = None) -> None:
         }
     }
 
+    # normalize the commands for fuzzy matching
+    normalized_commands = {cmd.replace("-", ""): cmd for cmd in commands}
+
     if chosen_command:
-        # Check for an exact match first
-        if chosen_command in commands:
+        # remove hyphens for fuzzy matching
+        normalized_chosen = chosen_command.replace("-", "")
+
+        # check matches with normalized commands first
+        if normalized_chosen in normalized_commands:
+            original_command = normalized_commands[normalized_chosen]
+            command_info = commands[original_command]
+            console.print(f"[bold cyan]{original_command}[/bold cyan]:")
+            console.print(f"Command: [bold cyan]{command_info['command']}[/bold cyan]")
+            console.print(f"{command_info['description']}")
+        # check for exact matches with hyphens
+        elif chosen_command in commands:
             command_info = commands[chosen_command]
             console.print(f"[bold cyan]{chosen_command}[/bold cyan]:")
             console.print(f"Command: [bold cyan]{command_info['command']}[/bold cyan]")
             console.print(f"{command_info['description']}")
         else:
-            # Use difflib to find the closest command match
-            closest_matches = get_close_matches(chosen_command, commands.keys(), n=1, cutoff=0.5)
-            if closest_matches:
-                suggested_command = closest_matches[0]
-                console.print(f"Command '{chosen_command}' not found. Did you mean '{suggested_command}'?\n")
+            # If no direct match, use fuzzy matching
+            ratios = {cmd: fuzz.ratio(normalized_chosen, cmd.replace("-", "")) for cmd in commands}
+            best_match = max(ratios.items(), key=lambda x: x[1])
+
+            # suggest if the match ratio is above 50% and it's not a simple hyphen difference
+            if best_match[1] >= 50:
+                suggested_command = best_match[0]
+                normalized_suggested = suggested_command.replace("-", "")
+
+                # show suggestion if similarity is >50% and not just a hyphen difference
+                if normalized_chosen != normalized_suggested:
+                    console.print(f"\nCommand '{chosen_command}' not found. Did you mean '{suggested_command}'?\n")
                 command_info = commands[suggested_command]
                 console.print(f"[bold cyan]{suggested_command}[/bold cyan]:")
                 console.print(f"Command: [bold cyan]{command_info['command']}[/bold cyan]")
-                console.print(f"    {command_info['description']}")
+                console.print(f"{command_info['description']}\n")
+            # no good matches found, show error and list available commands
             else:
                 console.print(f"[bold red]Error:[/bold red] '{chosen_command}' [bold red]is not a recognized command.[/bold red]\n")
                 console.print("Available commands:")
                 for command in commands:
                     console.print(f"  - {command}")
     else:
-        # Display all commands if no specific command is provided
+        # no commands specified, show all the available commands
         console.print("Available commands and their descriptions:\n")
         for command, info in commands.items():
             console.print(f"[bold cyan]{command}[/bold cyan]:")
             console.print(f"Command: [bold cyan]{info['command']}[/bold cyan]")
-            console.print(f"    {info['description']}\n")
+            console.print(f"{info['description']}\n")
 
 # def display_tldr(console: Console) -> None:
 #     """Display a list of example commands and their descriptions."""
